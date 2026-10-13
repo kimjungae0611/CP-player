@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2a1d16">
+<meta name="mobile-web-app-capable" content="yes">
+<title>CP-player</title>
+<style>
+  :root {
+    --bg: #2a1d16;
+    --card: #3a2a20;
+    --line: #5a4334;
+    --text: #f6ebdd;
+    --muted: #c4ab94;
+    --accent: #e8a55a;
+    --accent-ink: #2a1d16;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    background: radial-gradient(circle at 50% 0%, #4a3324 0%, var(--bg) 60%);
+    color: var(--text);
+    font-family: "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+  }
+  .player {
+    width: 100%;
+    max-width: 400px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .45);
+  }
+  .cover {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 16px;
+    object-fit: cover;
+    display: block;
+    background: #1e1510;
+  }
+  /* 가로로 눕힌 태블릿처럼 세로가 짧은 화면에서는 커버를 줄여 버튼이 한 화면에 들어오게 한다. */
+  @media (max-height: 820px) {
+    .cover { aspect-ratio: auto; height: 30vh; }
+  }
+  .exit {
+    display: flex;
+    width: fit-content;
+    height: 44px;
+    margin: 16px auto 0;
+    padding: 0 24px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .exit-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 24px;
+    text-align: center;
+    background: var(--bg);
+  }
+  .exit-screen p { margin: 0; color: var(--muted); font-size: 14px; }
+  .exit-screen .playlist { margin: 0; }
+  .exit-screen button { width: auto; padding: 0 24px; margin-top: 12px; font-size: 15px; }
+  .playlist {
+    margin: 0 0 16px;
+    text-align: center;
+    color: var(--accent);
+    font-size: 22px;
+    font-weight: 700;
+  }
+  .title { margin: 20px 0 4px; font-size: 22px; font-weight: 700; }
+  .sub { margin: 0; color: var(--muted); font-size: 14px; }
+
+  .seek { margin-top: 20px; }
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent);
+    cursor: pointer;
+    margin: 0;
+  }
+  .times {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    margin-top: 4px;
+  }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 12px;
+  }
+  button {
+    font: inherit;
+    color: var(--text);
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    width: 48px;
+    height: 48px;
+    font-size: 18px;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .15s, transform .05s;
+  }
+  button:hover { background: rgba(255, 255, 255, .07); }
+  button:active { transform: scale(.95); }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  #playBtn {
+    width: 68px;
+    height: 68px;
+    font-size: 26px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    border-color: var(--accent);
+  }
+  #playBtn:hover { background: #f2b672; }
+  #repeatBtn[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+
+  .volume {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 16px;
+    color: var(--muted);
+    font-size: 16px;
+  }
+
+  .list {
+    list-style: none;
+    margin: 20px 0 0;
+    padding: 12px 0 0;
+    border-top: 1px solid var(--line);
+  }
+  .list li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px;
+    border-radius: 12px;
+    cursor: pointer;
+  }
+  .list li:hover { background: rgba(255, 255, 255, .05); }
+  .list li.active { background: rgba(232, 165, 90, .15); }
+  .list li.active .name { color: var(--accent); }
+  .list img { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; background: #1e1510; }
+  .list .name { font-size: 15px; font-weight: 600; }
+  .list .len { margin-left: auto; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  .embed { margin-top: 20px; }
+  .embed iframe { width: 100%; height: 140px; border: 0; border-radius: 12px; display: block; background: #1e1510; pointer-events: none; }
+  .embed.unlocked iframe { pointer-events: auto; outline: 2px solid var(--accent); }
+  .embed p { margin: 8px 0 0; font-size: 12px; color: var(--muted); text-align: center; }
+  .embed .link {
+    display: block;
+    width: auto;
+    height: auto;
+    margin: 6px auto 0;
+    padding: 6px 10px;
+    border: 0;
+    font-size: 12px;
+    color: var(--muted);
+    text-decoration: underline;
+  }
+  [hidden] { display: none !important; }
+
+  .status { min-height: 18px; margin: 12px 0 0; font-size: 12px; color: #ff9d8a; text-align: center; }
+  .hint { margin: 4px 0 0; font-size: 11px; color: var(--muted); text-align: center; }
+</style>
+</head>
+<body>
+<main class="player">
+  <p class="playlist">CP-player</p>
+  <img id="cover" class="cover" alt="앨범 커버">
+  <h1 id="title" class="title"></h1>
+  <p id="sub" class="sub"></p>
+
+  <div id="embed" class="embed" hidden>
+    <iframe id="frame" title="Suno 플레이어" allow="autoplay; encrypted-media" tabindex="-1"></iframe>
+    <p id="embedNote"></p>
+    <button id="unlockBtn" class="link" type="button" aria-pressed="false">소리가 안 나오면 여기를 누르세요</button>
+  </div>
+
+  <div id="seekRow" class="seek">
+    <input id="seek" type="range" min="0" max="100" step="0.1" value="0" aria-label="재생 위치">
+    <div class="times"><span id="cur">0:00</span><span id="dur">0:00</span></div>
+  </div>
+
+  <div class="controls">
+    <button id="repeatBtn" title="반복 재생" aria-label="반복 재생" aria-pressed="false">🔁</button>
+    <button id="prevBtn" title="이전 곡" aria-label="이전 곡">⏮</button>
+    <button id="playBtn" title="재생" aria-label="재생">▶</button>
+    <button id="stopBtn" title="정지" aria-label="정지">⏹</button>
+    <button id="nextBtn" title="다음 곡" aria-label="다음 곡">⏭</button>
+  </div>
+
+  <div id="volRow" class="volume">
+    <span aria-hidden="true">🔊</span>
+    <input id="vol" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="음량">
+  </div>
+
+  <button id="exitBtn" class="exit" type="button">프로그램 종료</button>
+
+  <ul id="list" class="list"></ul>
+  <p id="status" class="status" role="status"></p>
+  <p id="hint" class="hint">스페이스: 재생/일시정지 · ←/→: 5초 이동</p>
+</main>
+
+<div id="exitScreen" class="exit-screen" hidden>
+  <p class="playlist">CP-player</p>
+  <p>재생을 종료했습니다. 이 창은 닫으셔도 됩니다.</p>
+  <button id="reopenBtn" type="button">다시 듣기</button>
+</div>
+
+<audio id="audio" preload="metadata"></audio>
+
+<script>
+  // Suno는 음원 파일 직접 접근을 막아 두었기 때문에 두 가지 방식으로 재생합니다.
+  //  1) music 폴더에 file 이름의 MP3가 있으면 → 이 플레이어의 버튼으로 직접 재생
+  //  2) 없으면 → Suno 공식 임베드 플레이어로 재생 (곡 길이 duration 만큼 기다렸다가 다음 곡으로 넘김)
+  // 곡을 추가하려면 이 목록에 항목을 더하면 됩니다.
+  const TRACKS = [
+    {
+      title: "No1-밤의세레나데",
+      sub: "EmpyreanVocalStems297",
+      id: "27d05c7f-eeff-4135-b873-cb3195d136a8",
+      file: "music/1.mp3",
+      duration: 198
+    },
+    {
+      title: "Stay While the Kettle Hums",
+      sub: "EmpyreanVocalStems297",
+      id: "51023119-749b-4cdf-98d3-5c1531063d08",
+      file: "music/2.mp3",
+      duration: 199.92
+    },
+    {
+      title: "Your Blue Wool Coat",
+      sub: "EmpyreanVocalStems297",
+      id: "c43bcab0-e152-41b4-9037-bbe2925336b1",
+      file: "music/3.mp3",
+      duration: 189.16
+    },
+    {
+      title: "Stay a Little Longer",
+      sub: "EmpyreanVocalStems297",
+      id: "62516dc5-450e-4b98-9e13-a78391654d15",
+      file: "music/4.mp3",
+      duration: 189.56
+    },
+    {
+      title: "Smooth Swing",
+      sub: "EmpyreanVocalStems297",
+      id: "c07dc227-e645-4705-bf40-948717a60baa",
+      file: "music/5.mp3",
+      duration: 194.48
+    },
+    {
+      title: "Smoke and Sax",
+      sub: "EmpyreanVocalStems297",
+      id: "81fef8d7-3d51-4f8b-8bc1-792b4ff9fe7b",
+      file: "music/6.mp3",
+      duration: 218.6
+    },
+    {
+      title: "Café Piano",
+      sub: "EmpyreanVocalStems297",
+      id: "d927ad59-1c19-4a0c-90c1-16952a8767e4",
+      file: "music/7.mp3",
+      duration: 179.68
+    },
+    {
+      title: "Midnight Lullaby",
+      sub: "EmpyreanVocalStems297",
+      id: "959b1d40-ca7d-4575-8efa-9b802fba9103",
+      file: "music/8.mp3",
+      duration: 202.8
+    },
+    {
+      title: "Stay A Little",
+      sub: "EmpyreanVocalStems297",
+      id: "3efb3131-0248-4142-afb2-3b13e4375762",
+      file: "music/9.mp3",
+      duration: 242.76
+    },
+    {
+      title: "Stately Meditation",
+      sub: "EmpyreanVocalStems297",
+      id: "874c250d-c8a3-42ac-8c7a-98fc9b508843",
+      file: "music/10.mp3",
+      duration: 119.96
+    },
+    {
+      title: "Find Its Way to You",
+      sub: "EmpyreanVocalStems297",
+      id: "31d347e4-19e5-42d5-af2a-7d1a63689c2a",
+      file: "music/11.mp3",
+      duration: 288.32
+    },
+    {
+      title: "Passing Through This Room",
+      sub: "EmpyreanVocalStems297",
+      id: "e9e3b2c6-da26-40ea-b323-712e932de391",
+      file: "music/12.mp3",
+      duration: 197.96
+    },
+    {
+      title: "The Long Way Home",
+      sub: "EmpyreanVocalStems297",
+      id: "07897d7e-85aa-4894-b9a8-aa7746f18ef1",
+      file: "music/13.mp3",
+      duration: 203.2
+    },
+    {
+      title: "Keep One Small Place",
+      sub: "EmpyreanVocalStems297",
+      id: "fb792345-92de-4498-8904-27f424c947d7",
+      file: "music/14.mp3",
+      duration: 219.96
+    },
+    {
+      title: "The Porch Light",
+      sub: "EmpyreanVocalStems297",
+      id: "a78a4bff-a7c5-4267-8ab8-21e2faa3c957",
+      file: "music/15.mp3",
+      duration: 167.16
+    },
+    {
+      title: "Stay for the Coffee",
+      sub: "EmpyreanVocalStems297",
+      id: "3e082c06-6b3e-4e7e-8646-7cb0a49166be",
+      file: "music/16.mp3",
+      duration: 259.28
+    },
+    {
+      title: "The Long Long way",
+      sub: "EmpyreanVocalStems297",
+      id: "ffb0aa59-5b84-47cb-9967-33e351e85b5e",
+      file: "music/17.mp3",
+      duration: 207.96
+    }
+  ];
+  const embedUrl = (id) => `https://suno.com/embed/${id}`;
+  const coverUrl = (id) => `https://cdn2.suno.ai/image_large_${id}.jpeg`;
+  const thumbUrl = (id) => `https://cdn2.suno.ai/image_${id}.jpeg`;
+
+  const $ = (id) => document.getElementById(id);
+  const audio = $("audio"), seek = $("seek"), vol = $("vol");
+  const playBtn = $("playBtn"), repeatBtn = $("repeatBtn");
+  const frame = $("frame");
+  // mode: "probe"(로컬 파일 확인 중) | "local"(직접 재생) | "embed"(Suno 임베드)
+  let index = 0, seeking = false, repeat = false, mode = "probe", wantPlay = false;
+  // 임베드는 재생이 끝났는지 알려주지 않아서, 곡 길이 + 로딩 여유 시간이 지나면 다음 곡으로 넘긴다.
+  // 임베드 페이지가 다 뜬 시점(load)부터 잰다. 느린 와이파이에서 페이지 로딩이 길어져도 넘김 시각이 틀어지지 않는다.
+  // 임베드는 곡이 끝나면 처음부터 다시 재생하므로, 여유가 실제 재생 시작 지연(2~4초)보다 길면
+  // 이전 곡 앞부분이 다시 들린다. 핸드폰에서는 2초로도 1초쯤 다시 들려서, 끝을 살짝 자르더라도 일찍 넘긴다.
+  const EMBED_GAP = 0.5;
+  const EMBED_LOAD_WAIT = 20;
+  const EMBED_IDLE_NOTE = "▶ 를 누르면 목록 전체가 계속 반복 재생됩니다";
+  let embedTimer = null, embedEndAt = 0, embedLoaded = false;
+  const WAKE_HINT = "wakeLock" in navigator ? "" : " · 이 주소에서는 화면 꺼짐 방지가 안 되니 태블릿의 화면 자동 꺼짐을 길게 설정해 주세요";
+
+  function fmt(sec) {
+    if (!isFinite(sec)) return "0:00";
+    const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
+    return `${m}:${String(s).padStart(2, "0")}`;
+  }
+
+  function load(i, autoplay) {
+    index = (i + TRACKS.length) % TRACKS.length;
+    const t = TRACKS[index];
+    wantPlay = autoplay;
+    setMode("probe");
+    audio.src = t.file;
+    $("cover").src = coverUrl(t.id);
+    $("title").textContent = t.title;
+    $("sub").textContent = t.sub;
+    $("status").textContent = "";
+    seek.value = 0;
+    $("cur").textContent = "0:00";
+    $("dur").textContent = "0:00";
+    document.querySelectorAll("#list li").forEach((li, n) => li.classList.toggle("active", n === index));
+  }
+
+  function setMode(m) {
+    mode = m;
+    const embed = m === "embed";
+    $("embed").hidden = !embed;
+    ["seekRow", "volRow"].forEach((id) => { $(id).hidden = embed; });
+    $("hint").textContent = (embed ? "스페이스: 재생/정지" : "스페이스: 재생/일시정지 · ←/→: 5초 이동") + WAKE_HINT;
+    repeatBtn.hidden = embed;
+    clearEmbed();
+    if (embed) {
+      audio.removeAttribute("src");
+      audio.load();
+      setPlayIcon(false);
+      if (wantPlay) startEmbed();
+      else frame.src = embedUrl(TRACKS[index].id);
+    } else {
+      frame.removeAttribute("src");
+    }
+  }
+
+  // 네트워크가 끊긴 채로 곡을 불러오면 그 곡 길이만큼 조용히 지나가 버린다.
+  // 그래서 Suno 서버에 닿는지 먼저 확인하고, 안 닿으면 넘기지 않고 연결될 때까지 기다린다.
+  let embedWaiting = false, embedToken = 0, retryTimer = null;
+  async function reachable() {
+    if (!navigator.onLine) return false;
+    const ctl = new AbortController();
+    const timeout = setTimeout(() => ctl.abort(), 8000);
+    try {
+      await fetch(thumbUrl(TRACKS[index].id), { mode: "no-cors", cache: "no-store", signal: ctl.signal });
+      return true;
+    } catch (e) {
+      return false;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+  async function startEmbed() {
+    clearEmbed();
+    const token = embedToken;
+    embedWaiting = true;
+    playBtn.hidden = true;
+    frame.src = "about:blank";
+    $("embedNote").textContent = "불러오는 중…";
+    syncWake();
+    const ok = await reachable();
+    if (token !== embedToken) return;
+    if (!ok) {
+      $("embedNote").textContent = "네트워크 연결을 기다리는 중… 연결되면 자동으로 재생합니다 · ⏹ 로 정지";
+      retryTimer = setTimeout(startEmbed, 5000);
+      return;
+    }
+    embedWaiting = false;
+    frame.src = embedUrl(TRACKS[index].id) + "?autoplay=1";
+    watchEmbed();
+  }
+  window.addEventListener("online", () => { if (embedWaiting) startEmbed(); });
+  function watchEmbed() {
+    clearInterval(embedTimer);
+    embedEndAt = Date.now() + (TRACKS[index].duration + EMBED_GAP + EMBED_LOAD_WAIT) * 1000;
+    embedLoaded = false;
+    playBtn.hidden = true;
+    embedTimer = setInterval(embedTick, 500);
+    embedTick();
+    syncWake();
+  }
+  // 끝나는 시각을 절대 시각으로 들고 있어서, 태블릿이 타이머를 늦춰도 화면에 돌아오면 바로 따라잡는다.
+  function embedTick() {
+    if (!embedTimer) return;
+    const left = (embedEndAt - Date.now()) / 1000;
+    if (left <= 0) load(index + 1, true);
+    else if (!embedLoaded) $("embedNote").textContent = "불러오는 중…";
+    else $("embedNote").textContent = `연속 재생 중 · 다음 곡까지 약 ${fmt(left)} · ⏹ 로 정지`;
+  }
+
+  frame.addEventListener("load", () => {
+    if (!embedTimer || embedLoaded) return;
+    // 빈 페이지(about:blank)의 load 는 무시한다. Suno 페이지는 다른 출처라 주소를 읽으면 예외가 난다.
+    try { if (frame.contentWindow.location.href === "about:blank") return; } catch (e) {}
+    embedLoaded = true;
+    embedEndAt = Date.now() + (TRACKS[index].duration + EMBED_GAP) * 1000;
+    embedTick();
+  });
+
+  // 재생 중에는 태블릿 화면이 꺼지지 않게 한다 (화면이 꺼지면 재생과 곡 넘김이 멈춘다).
+  let wakeLock = null, wakeWanted = false;
+  async function syncWake() {
+    wakeWanted = !!embedTimer || embedWaiting || (mode === "local" && !audio.paused);
+    if (!("wakeLock" in navigator)) return;
+    try {
+      if (wakeWanted && !wakeLock && document.visibilityState === "visible") {
+        const lock = await navigator.wakeLock.request("screen");
+        lock.addEventListener("release", () => { if (wakeLock === lock) wakeLock = null; });
+        wakeLock = lock;
+      }
+      if (!wakeWanted && wakeLock) { const lock = wakeLock; wakeLock = null; await lock.release(); }
+    } catch (e) {}
+  }
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible") return;
+    embedTick();
+    syncWake();
+  });
+  function clearEmbed() {
+    clearInterval(embedTimer);
+    embedTimer = null;
+    clearTimeout(retryTimer);
+    embedWaiting = false;
+    embedToken++;
+    playBtn.hidden = false;
+    $("embedNote").textContent = EMBED_IDLE_NOTE;
+  }
+
+  function play() {
+    audio.play().catch(() => {});
+  }
+  function toggle() {
+    if (mode === "embed") startEmbed();
+    else audio.paused ? play() : audio.pause();
+  }
+  function stop() {
+    if (mode === "embed") { clearEmbed(); frame.src = embedUrl(TRACKS[index].id); syncWake(); return; }
+    audio.pause();
+    audio.currentTime = 0;
+  }
+
+  function renderList() {
+    $("list").innerHTML = "";
+    TRACKS.forEach((t, n) => {
+      const li = document.createElement("li");
+      li.innerHTML = `<img alt="" src="${thumbUrl(t.id)}"><span class="name"></span><span class="len" id="len${n}">${fmt(t.duration)}</span>`;
+      li.querySelector(".name").textContent = t.title;
+      li.addEventListener("click", () => load(n, true));
+      $("list").appendChild(li);
+    });
+  }
+
+  function setPlayIcon(playing) {
+    playBtn.textContent = playing ? "⏸" : "▶";
+    playBtn.title = playing ? "일시정지" : "재생";
+    playBtn.setAttribute("aria-label", playBtn.title);
+  }
+
+  playBtn.addEventListener("click", toggle);
+  $("stopBtn").addEventListener("click", stop);
+  $("prevBtn").addEventListener("click", () => load(index - 1, true));
+  $("nextBtn").addEventListener("click", () => load(index + 1, true));
+  // 종료: 음악을 완전히 멈추고 창을 닫는다. 브라우저가 창 닫기를 막으면 종료 화면을 보여 준다.
+  $("exitBtn").addEventListener("click", () => {
+    stop();
+    if (mode === "embed") frame.src = "about:blank";
+    $("exitScreen").hidden = false;
+    window.close();
+  });
+  $("reopenBtn").addEventListener("click", () => {
+    $("exitScreen").hidden = true;
+    load(index, false);
+  });
+  repeatBtn.addEventListener("click", () => {
+    repeat = !repeat;
+    repeatBtn.setAttribute("aria-pressed", String(repeat));
+    repeatBtn.title = repeat ? "반복 재생 켜짐 (한 곡)" : "반복 재생";
+  });
+
+  audio.addEventListener("play", () => { setPlayIcon(true); syncWake(); });
+  audio.addEventListener("pause", () => { setPlayIcon(false); syncWake(); });
+  audio.addEventListener("loadedmetadata", () => {
+    setMode("local");
+    if (wantPlay) play();
+    seek.max = audio.duration;
+    $("dur").textContent = fmt(audio.duration);
+    $("len" + index).textContent = fmt(audio.duration);
+  });
+  audio.addEventListener("timeupdate", () => {
+    if (seeking) return;
+    seek.value = audio.currentTime;
+    $("cur").textContent = fmt(audio.currentTime);
+  });
+  audio.addEventListener("ended", () => {
+    if (repeat) { audio.currentTime = 0; play(); }
+    else load(index + 1, true);
+  });
+  audio.addEventListener("error", () => {
+    // 로컬 MP3가 없으면 Suno 공식 플레이어로 전환
+    if (mode === "probe") setMode("embed");
+    else if (mode === "local") $("status").textContent = "음악 파일을 재생할 수 없습니다.";
+  });
+
+  // 태블릿이 자동재생을 막아 소리가 안 날 때: Suno 플레이어를 직접 누를 수 있게 잠깐 풀어 준다.
+  $("unlockBtn").addEventListener("click", () => {
+    const on = $("embed").classList.toggle("unlocked");
+    $("unlockBtn").setAttribute("aria-pressed", String(on));
+    $("unlockBtn").textContent = on
+      ? "위 Suno 플레이어의 ▶ 를 한 번 눌러 주세요 (다시 누르면 잠금)"
+      : "소리가 안 나오면 여기를 누르세요";
+  });
+
+  seek.addEventListener("input", () => { seeking = true; $("cur").textContent = fmt(Number(seek.value)); });
+  seek.addEventListener("change", () => { audio.currentTime = Number(seek.value); seeking = false; });
+  vol.addEventListener("input", () => { audio.volume = Number(vol.value); });
+
+  document.addEventListener("keydown", (e) => {
+    if (!$("exitScreen").hidden) return;
+    if (e.target.tagName === "INPUT" || e.target.tagName === "BUTTON") return;
+    if (mode === "embed") {
+      if (e.code === "Space") { e.preventDefault(); embedTimer || embedWaiting ? stop() : startEmbed(); }
+      return;
+    }
+    if (mode !== "local") return;
+    if (e.code === "Space") { e.preventDefault(); toggle(); }
+    else if (e.code === "ArrowRight") audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 5);
+    else if (e.code === "ArrowLeft") audio.currentTime = Math.max(0, audio.currentTime - 5);
+  });
+
+  audio.volume = Number(vol.value);
+  renderList();
+  load(0, false);
+</script>
+</body>
+</html>
