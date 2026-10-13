@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#2a1d16">
 <meta name="mobile-web-app-capable" content="yes">
-<title>CP-player</title>
+<title>청파노인복지관 플레이 리스트</title>
 <style>
   :root {
     --bg: #2a1d16;
@@ -81,6 +81,9 @@
     color: var(--accent);
     font-size: 22px;
     font-weight: 700;
+    /* 좁은 화면에서 두 줄이 될 때 낱말 중간에서 끊기지 않고 줄 길이가 비슷하게 나뉘도록 */
+    word-break: keep-all;
+    text-wrap: balance;
   }
   .title { margin: 20px 0 4px; font-size: 22px; font-weight: 700; }
   .sub { margin: 0; color: var(--muted); font-size: 14px; }
@@ -193,7 +196,7 @@
 </head>
 <body>
 <main class="player">
-  <p class="playlist">CP-player</p>
+  <p class="playlist">청파노인복지관 플레이 리스트</p>
   <img id="cover" class="cover" alt="앨범 커버">
   <h1 id="title" class="title"></h1>
   <p id="sub" class="sub"></p>
@@ -230,7 +233,7 @@
 </main>
 
 <div id="exitScreen" class="exit-screen" hidden>
-  <p class="playlist">CP-player</p>
+  <p class="playlist">청파노인복지관 플레이 리스트</p>
   <p>재생을 종료했습니다. 이 창은 닫으셔도 됩니다.</p>
   <button id="reopenBtn" type="button">다시 듣기</button>
 </div>
