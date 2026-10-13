@@ -38,17 +38,14 @@
     padding: 24px;
     box-shadow: 0 24px 60px rgba(0, 0, 0, .45);
   }
+  /* 메인 이미지는 곡과 상관없이 cover.png 한 장을 쓴다. 그림이 잘리지 않게 원본 비율 그대로 보여 준다. */
   .cover {
     width: 100%;
-    aspect-ratio: 1;
+    aspect-ratio: 329 / 171;
     border-radius: 16px;
-    object-fit: cover;
+    object-fit: contain;
     display: block;
-    background: #1e1510;
-  }
-  /* 가로로 눕힌 태블릿처럼 세로가 짧은 화면에서는 커버를 줄여 버튼이 한 화면에 들어오게 한다. */
-  @media (max-height: 820px) {
-    .cover { aspect-ratio: auto; height: 30vh; }
+    background: #fff;
   }
   .exit {
     display: flex;
@@ -197,7 +194,7 @@
 <body>
 <main class="player">
   <p class="playlist">청파노인복지관 플레이 리스트</p>
-  <img id="cover" class="cover" alt="앨범 커버">
+  <img id="cover" class="cover" src="cover.png" alt="청파노인복지관">
   <h1 id="title" class="title"></h1>
   <p id="sub" class="sub"></p>
 
@@ -297,7 +294,6 @@
     }
   ];
   const embedUrl = (id) => `https://suno.com/embed/${id}`;
-  const coverUrl = (id) => `https://cdn2.suno.ai/image_large_${id}.jpeg`;
   const thumbUrl = (id) => `https://cdn2.suno.ai/image_${id}.jpeg`;
 
   const $ = (id) => document.getElementById(id);
@@ -328,7 +324,6 @@
     wantPlay = autoplay;
     setMode("probe");
     audio.src = t.file;
-    $("cover").src = coverUrl(t.id);
     $("title").textContent = t.title;
     $("sub").textContent = t.sub;
     $("status").textContent = "";
